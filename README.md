@@ -5,6 +5,6 @@
 >##### 2.2 阅读器：HTML+CSS+jQuery负责文字渲染，Bootstrap负责视觉样式，epubjs负责解析epub电子书
 #### 3.运行效果：
 >##### 3.1 平台页面：
-   ![image](https://github.com/xiaozhaoqi/ebook/blob/master/1.gif)
+>![image](https://github.com/xiaozhaoqi/ebook/blob/master/1.gif)
 >##### 3.2 阅读器：
-   ![image](https://github.com/xiaozhaoqi/ebook/blob/master/3.gif)
+>![image](https://github.com/xiaozhaoqi/ebook/blob/master/3.gif)
