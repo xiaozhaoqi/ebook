@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html class="no-js">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimal-ui">
+        <link rel="stylesheet" href="./css/main.css">
+        <link rel="stylesheet" href="./css/bootstrap.min.css">
+        <script src="./js/jquery.min.js"></script>
+        <script>
+        if(typeof module==='object')
+        {
+            window.jQuery = window.$ = module.exports; //用于electron客户端
+        }
+        </script>
+        <script src="./js/zip.min.js"></script>
+        <script src="./js/epub.js"></script>
+        <script src="./js/reader.min.js"></script>
+        <script src="./js/bootstrap.min.js"></script>
+        
+    </head>
+    <body>
+		<div id="sidebar">
+            <div id="tocView"></div>
+		</div>
+		<div id="main">
+			<div id="titlebar">
+                <div id="opener">
+                    <a id="slider" class="icon-menu" style='border-radius:25px;cursor:pointer;color:#5bc0de;width:50px;height:25px;'>目录</a>
+                </div>
+                <div id="metainfo">
+                    <span id="book-title"></span>
+                    <span id="title-seperator">&nbsp;&nbsp;–&nbsp;&nbsp;</span>
+                    <span id="chapter-title"></span>
+                    <div id="failedMark" class="alert alert-info" role="alert">标记失败，原因：所选句子格式错误，多试几次即可。</div>
+                    <div id="failedMarkSelect" class="alert alert-info" role="alert">标记失败，原因：未选择标签或所选内容不在正文中。</div>
+                    <div id="successedMark" class="alert alert-success" role="alert">标记成功，可在主页标记界面查看分类、统计、索引等信息。</div>
+                </div>
+			</div>
+			<div id="divider"></div>
+			<div id="prev" class="arrow" >‹</div>
+			<div id="viewer"></div>
+			<div id="next" class="arrow" >›</div>
+            <div id="loader"><img src="./image/loader.gif"></div>
+            <div id='bottombar' style='text-align:center'>
+                <div class="progress" >
+                    <div id='rate' class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%;background-color:#5bc0de;z-index:-1;">
+                    </div>
+                </div>
+                <button type="button" id='username' class="label label-info" data-toggle="tooltip" data-placement="top" title="状态：阅读中~正在产生阅读数据"><span class="glyphicon glyphicon-user"></span> </button>
+                <span id="tagBottomItem"></span>
+                <button type="button" class="label label-info" id='shareMarks' data-toggle="tooltip" data-placement="top" title="开关：是否阅览其他读者的批注"><span class="glyphicon glyphicon-eye-open"></span></button>  
+                <button type="button" class="label label-info" id='markingMode' data-toggle="tooltip" data-placement="top" title="模式：是否打开快速标记模式"><span class="glyphicon glyphicon-lock"></span></button>        
+                <button type="button" class="label label-info" id='help' data-toggle="tooltip" data-placement="top" title="帮助"><span class="glyphicon glyphicon-question-sign"></span></button>                    
+            </div>    
+        </div>
+        <div class="modal fade bs-example-modal-lg" id='helpModal' tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content" style="text-indent:'20px';margin: 20px 20px 20px 20px;">
+                    <h2 id='helpUsername' style="text-align:center"></h2>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
+                    <hr/>
+                    <h4>&emsp;普通标记</h4>
+                        <p>&emsp;&emsp;&emsp;选中一段正文文本，弹出悬浮窗，为文本设置一个特殊标签或自定义标签，并作可选的批注。</p>
+                    <h4>&emsp;快速标记</h4>
+                        <p>&emsp;&emsp;&emsp;点击下方 <span class="label label-info" ><span class="glyphicon glyphicon-lock"></span></span> 按钮切换到快速标记模式，并在下方标签组中选择一个合适的标签，然后在正文中连续点击任意句子，成功标记。</p>
+                    <hr/>
+                    <h4>&emsp;特殊标签</h4>
+                        <p>&emsp;&emsp;&emsp;标记为 <span class="label label-primary" style="cursor:pointer;background-color:#777">折叠</span> 的文本，下次阅读时将不再展示。</p>
+                        <p>&emsp;&emsp;&emsp;标记为 <span class="label label-primary" style="cursor:pointer;background-color:#5bc0de">收藏</span> 的文本，将存至私有的收藏夹。</p>
+                        <p>&emsp;&emsp;&emsp;标记为 <span class="label label-primary" style="cursor:pointer;background-color:#d9534f">重要</span> 的文本，将突出显示并重点标记。</p>
+                        <p>&emsp;&emsp;&emsp;标记为 <span class="label label-primary" style="cursor:pointer;background-color:#18c9aa">分享</span> 的文本，将被推荐给书友阅读。</p>
+                    <h4>&emsp;自定义标签</h4>
+                        <p>&emsp;&emsp;&emsp;在普通标记模式下，选中文本弹出悬浮窗。</p>
+                        <p>&emsp;&emsp;&emsp;点击 <span class="label label-success"><span class="glyphicon glyphicon-plus"></span></span> 定义私有的标签。</p>
+                        <p>&emsp;&emsp;&emsp;点击 <span class="label label-success"><span class="glyphicon glyphicon-minus"></span></span> 删除标签，但应至少保留两个标签。</p>
+                    <hr/>
+                    <h4>&emsp;快捷操作</h4>
+                        <p>&emsp;&emsp;&emsp;Shift+滚轮/键盘↑或↓： 放大或缩小正文字号（文本过大，会导致内容显示不全，酌情使用）。</p>
+                        <p>&emsp;&emsp;&emsp;滚轮/键盘←或→： 向左或向右翻页。</p>
+                                          
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
+                <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                    <div class="modal-body">
+                      <form>
+                        <div class="form-group">
+                            <hr><p id='commentParagraph'></p><hr>
+                        </div>
+                        <div class="form-group" id='tagFrame'>
+                                <div id='tags'></div>
+                                <span class="label label-success" style="cursor:pointer" id='addTag'><span class="glyphicon glyphicon-plus"></span></span>
+                                <span class="label label-success" style="cursor:pointer" id='removeTag'><span class="glyphicon glyphicon-minus"></span></span>
+                                <input type="text" class="form-control" placeholder="输入标签名..." id="tagNameInput" style='font-size:0.8em;width:100px;height:18px;display:inline-block'/>                                
+                                <input type="color" name="color" id="color" style="border-radius:3px;height:18px;position:relative;bottom:1px;"/>                                                                          
+                                <span class="label label-success" style="cursor:pointer" id="submitAddTag">添加标签</span> 
+                                <span class="label label-default" style="cursor:pointer" id="closeAddTag">取消添加</span>
+                                <span class="label label-default" style="cursor:pointer" id="closeRemove">取消删除</span>
+                        </div>
+                        <div class="form-group">                   
+                          <textarea class="form-control" id="message-text" style="resize:none;"></textarea>
+                        </div>
+                      </form>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                      <button type="button" class="btn btn-primary" id='commentFinish'>完成批注</button>
+                    </div>
+                  </div>
+                </div>
+            </div>
+		<script>
+			EPUBJS.cssPath = "./css/";
+			var urlinfo = (window.location.href);
+			var len=urlinfo.length;//获取url的长度
+			var offset=urlinfo.indexOf("?");//设置参数字符串开始的位置
+			if(offset==-1)
+			{   
+				alert('非法访问！');
+				window.close();
+			}
+			else
+				var newsidinfo=urlinfo.substr(offset,len)//取出参数字符串 这里会获得类似“id=1”这样的字符串
+			if(newsidinfo.indexOf('&')>=0)
+			{
+				var newsids=newsidinfo.split("&");//对获得的参数字符串按照“=”进行分割
+				var bookname=newsids[0].split('=')[1];//得到参数值
+                var username=decodeURIComponent(newsids[1].split('=')[1]);
+                var cfi=newsids[2].split('=')[1];
+                var key=newsids[3].split('=')[1].split('#')[0];
+                fetch('/getLoginKey', { 
+                    method: 'post', 
+                    headers: { 
+                    "Content-type": "application/x-www-form-urlencoded" 
+                    }, 
+                    body: "username="+username //用户名
+                }).then(
+                    response => response.json()
+                ).then((keycheck)=>{
+                    if(keycheck.keycheck==key)
+                    {
+                        let date = new Date();
+                        if(date.getHours()>=12 && date.getHours()<=18)
+                            $('#helpUsername').text(' 下午好，'+username+'！')
+                        if(date.getHours()>=18 && date.getHours()<=24)
+                            $('#helpUsername').text(' 晚上好，'+username+'！')
+                        if(date.getHours()>=6 && date.getHours()<=12)
+                            $('#helpUsername').text(' 上午好，'+username+'！')
+                        if(date.getHours()>=0 && date.getHours()<=6)
+                            $('#helpUsername').text(' 睡吧，'+username+'！')
+                        $('#helpModal').modal('show');
+                    }
+                    else
+                    {
+                        alert('非法访问');
+				        window.close();
+                    }
+                }).catch(function(e) {
+                    console.log(e);
+                });
+			}
+			else
+			{
+				alert('非法访问');
+				window.close();
+			}
+            $('#username').html($('#username').html()+username);
+            $('#username').hover(function(){
+                $('#username').tooltip('show');
+            })
+            var reader = ePubReader("./book/"+bookname);
+            
+            var topic = 0;
+            reader.book.getToc().then((toc)=>{
+                topic = toc;
+                if(cfi.length>=7) //指定cfi的情况
+                {
+                    var compareCFI = cfi.split('!')[0]+')';
+                    for(var t=0;t<topic.length;t++)
+                    {
+                        if(compareCFI == topic[t].cfi)
+                        {
+                            reader.book.displayChapter(topic[t].cfi);
+                        }
+                    }
+                }
+            });
+
+            var shareMarks = true;
+            var markingMode = true;
+            var tags = [];
+            var tagsForAdd =[];
+            var tagsForRemove =[];
+            var currentTag = '';
+            var currentColor = '';
+            var fontSize = 1;
+            var selected='';
+            $('#failedMark').hide();
+            $('#successedMark').hide();
+            $('#failedMarkSelect').hide();
+            $('#shareMarks').hover(function(){
+                $('#shareMarks').tooltip('show');
+            });
+            $('#help').hover(function(){
+                $('#help').tooltip('show');
+            });
+            $('#help').click(function(){
+                $('#helpModal').modal('show');
+            });
+            $('#markingMode').hover(function(){
+                $('#markingMode').tooltip('show');
+                fetch('/getUserTags', { 
+                    method: 'post', 
+                    headers: { 
+                    "Content-type": "application/x-www-form-urlencoded" 
+                    }, 
+                    body: "username="+username //用户名
+                }).then(
+                    response => response.json()
+                ).then((user)=>{
+                    tags = user[0].tags.split(',').slice(0,-1);
+                }).catch(function(e) {
+                    console.log(e);
+                });
+            })
+
+            $('#markingMode').click(()=>{
+                if(markingMode)
+                {
+                    markingMode = false;
+                    for(var tagItem=0;tagItem<tags.length;tagItem++)
+                    {
+                        if(tags[tagItem].split('#')[0]!='分享')
+                            $('#tagBottomItem').append(`
+                                <button 
+                                    class="label label-primary" 
+                                    onclick="let nodes = this.parentNode.childNodes;
+                                            for(node in nodes)
+                                            {
+                                                if(nodes[node].nodeType==1)
+                                                    nodes[node].style.border='';
+                                            }
+                                            this.style.border='4px solid #${tags[tagItem].split('#')[1]}';
+                                            sentenceMark('${tags[tagItem].split('#')[0]}','#'+'${tags[tagItem].split('#')[1]}');" 
+                                    style="cursor:pointer;background-color:#${tags[tagItem].split('#')[1]}" 
+                                >
+                                    ${tags[tagItem].split('#')[0]}
+                                </button> 
+                            `);
+                    }
+                    
+                    var compareCFI = 'epubcfi('+reader.book.currentChapter.cfiBase+')';
+                    for(var t1=0;t1<topic.length;t1++)
+                    {
+                        if(compareCFI == topic[t1].cfi)
+                        {
+                            reader.book.displayChapter(topic[t1].cfi);
+                        }
+                    }
+                }
+                else
+                {
+                    markingMode = true;
+                    $('#tagBottomItem').children().remove();
+                    var compareCFI = 'epubcfi('+reader.book.currentChapter.cfiBase+')';
+                    for(var t2=0;t2<topic.length;t2++)
+                    {
+                        if(compareCFI == topic[t2].cfi)
+                        {
+                            reader.book.displayChapter(topic[t2].cfi);
+                        }
+                    }
+                }
+            })
+
+            $('#shareMarks').click(()=>{
+                    if(shareMarks == false)
+                    {
+                        shareMarks = true;
+                        $('#shareMarks').html('<span class="glyphicon glyphicon-eye-open"></span>');
+                        var url = window.location.href.split('#')[1];
+                        var compareCFI = url.split('!')[0]+')';
+                        for(var t=0;t<topic.length;t++)
+                        {
+                            if(compareCFI == topic[t].cfi)
+                            {
+                                reader.book.displayChapter(topic[t].cfi);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        shareMarks = false;
+                        $('#shareMarks').html('<span class="glyphicon glyphicon-eye-close"></span>');
+                        var url = window.location.href.split('#')[1];
+                        var compareCFI = url.split('!')[0]+')';
+                        for(var t=0;t<topic.length;t++)
+                        {
+                            if(compareCFI == topic[t].cfi)
+                            {
+                                reader.book.displayChapter(topic[t].cfi);
+                            }
+                        }
+                    }
+            })
+
+            function Colorful(span,spanEnd,color){
+                while(span!=spanEnd){ //选中区域首尾不同时进行染色，首部指针移动到尾部结束染色
+                    try{
+                        if(span.innerText!='')
+                        {
+                            span.style.color = color;
+                            if(span.nextElementSibling!=null)
+                            {
+                                span = span.nextElementSibling;//跨SPAN标签的情况
+                            }
+                            else
+                            {   
+                                if(span.parentNode.nextElementSibling.innerText!='')
+                                    span = span.parentNode.nextElementSibling.firstChild;//跨P标签的情况
+                                else
+                                    span = span.parentNode.nextElementSibling;
+                            }
+                        }
+                        else
+                        {
+                            span = span.nextElementSibling.firstChild;//某些epub书中含有<p></p>空标签，跳过这些空段
+                        }
+                    }
+                    catch(err)
+                    {
+                        span = span.parentNode;
+                    }
+                    
+                }
+                span.style.color = color;//尾部染色
+                return span;
+            }
+
+            function starMark(span,spanEnd,flag){
+                if(flag=='1')
+                {
+                    while(span!=spanEnd){ 
+                        try{
+                            if(span.innerText!='')
+                            {
+                                span.style.borderBottom='2px black solid';
+                                span.style.paddingBottom='1px';
+                                if(span.nextElementSibling!=null)
+                                {
+                                    span = span.nextElementSibling;//跨SPAN标签的情况
+                                }
+                                else
+                                {   
+                                    if(span.parentNode.nextElementSibling.innerText!='')
+                                        span = span.parentNode.nextElementSibling.firstChild;//跨P标签的情况
+                                    else
+                                        span = span.parentNode.nextElementSibling;
+                                }
+                            }
+                            else
+                            {
+                                span = span.nextElementSibling.firstChild;//某些epub书中含有<p></p>空标签，跳过这些空段
+                            }
+                        }
+                        catch(err)
+                        {
+                            span = span.parentNode;
+                        }
+                    }
+                    span.style.borderBottom='2px black solid';
+                    span.style.paddingBottom='1px';
+                }
+                else
+                {
+                    while(span!=spanEnd){ 
+                        try{
+                            if(span.innerText!='')
+                            {
+                                span.style.borderBottom='none';
+                                if(span.nextElementSibling!=null)
+                                {
+                                    span = span.nextElementSibling;//跨SPAN标签的情况
+                                }
+                                else
+                                {   
+                                    if(span.parentNode.nextElementSibling.innerText!='')
+                                        span = span.parentNode.nextElementSibling.firstChild;//跨P标签的情况
+                                    else
+                                        span = span.parentNode.nextElementSibling;
+                                }
+                            }
+                            else
+                            {
+                                span = span.nextElementSibling.firstChild;//某些epub书中含有<p></p>空标签，跳过这些空段
+                            }
+                        }
+                        catch(err)
+                        {
+                            span = span.parentNode;
+                        }
+                    }
+                    span.style.borderBottom='none';
+                }
+                
+            }
+
+            function clickMark(comment,data,span,spanEnd){
+                comment.onclick=function(){
+                    if(comment.getAttribute('state')=='1')
+                    {
+                        comment.setAttribute('title','隐藏标记');
+                        comment.setAttribute('state','0');
+                        comment.style.color = 'white';
+                        starMark(span,spanEnd,'1');
+                        if(data.comment=='')
+                        {
+                            comment.innerHTML='"'+data.username+'"的标记'+'<span style="color:red;">(👍 '+data.likes+')</span>';
+                        }
+                        else
+                        {
+                            comment.innerHTML='"'+data.username+'"的批注：'+data.comment.replace(/[\r\n]/g,"")+'<span style="color:red;">(👍 '+data.likes+')</span>';
+                        }
+                        
+                    }
+                    else
+                    {
+                        comment.setAttribute('title','查看标记');
+                        comment.setAttribute('state','1');
+                        starMark(span,spanEnd,'0');
+                        if(data.comment.length>10)
+                            comment.innerHTML='"'+data.username+'"的批注：'+data.comment.substr(0,10).replace(/[\r\n]/g,"")+'...剩余'+(data.comment.length-10)+'字'+'<span style="color:red;">(👍 '+data.likes+')</span>';
+                        else
+                        {
+                            if(data.comment=='')
+                            {
+                                comment.innerHTML='"'+data.username+'"的标记'+'<span style="color:red;">(👍 '+data.likes+')</span>';
+                            }
+                            else
+                            {
+                                comment.innerHTML='"'+data.username+'"的批注：'+data.comment.substr(0,10).replace(/[\r\n]/g,"")+'<span style="color:red;">(👍 '+data.likes+')</span>';
+                            }
+                        }
+                    }
+                }
+            }
+
+            function clickMarkSelf(comment,data,span,spanEnd){
+                comment.onclick=function(){
+                    if(comment.getAttribute('state')=='1')
+                    {
+                        comment.setAttribute('state','0');
+                        comment.style.color = 'white';
+                        starMark(span,spanEnd,'1');
+                    }
+                    else
+                    {
+                        comment.setAttribute('state','1');
+                        starMark(span,spanEnd,'0');
+                    }
+                }
+            }
+
+            function sentenceMark(a,b){
+                currentTag = a;
+                currentColor = b;
+            };
+            function getCFI(end){   //句子模式下，点击句号，标记该句子，并生成可与普通模式兼容的CFI位置。
+                let mark = [];
+                let t = end.previousElementSibling;
+                while(t.previousElementSibling!=null && t.previousElementSibling.innerText!="。")
+                {
+                    mark.push(t.innerText);
+                    t=t.previousElementSibling;
+                }
+                mark.push(t.innerText);
+                let selectedSentence = reader.book.renderer.render.window.getSelection();
+                selectedSentence.modify("extend", "left", "sentence");
+                let range = selectedSentence.getRangeAt(0);
+                let epubcfi = new EPUBJS.EpubCFI();
+                let cfi = epubcfi.generateCfiFromRange(range, reader.book.currentChapter.cfiBase);
+                if(currentColor!='' && currentTag!='')//color防止重复标记，current防止没有标签和颜色
+                {
+                    if(cfi=='error')
+                    {
+                        $('#failedMark').show();
+                        setTimeout(() => {
+                            $('#failedMark').hide();
+                        }, 2000);
+                        selectedSentence.removeAllRanges();
+                        return;
+                    }
+                    while(t!=end){
+                        t.style.backgroundColor=currentColor;
+                        t=t.nextElementSibling;
+                    }
+                    var date = new Date();
+                    $('#successedMark').show();
+                    setTimeout(() => {
+                        $('#successedMark').hide();
+                    }, 2000);
+                    fetch('/mark', { 
+                        method: 'post', 
+                        headers: { 
+                        "Content-type": "application/x-www-form-urlencoded" 
+                        }, 
+                        body: "username="+username //用户名
+                            +"&bookname="+bookname //书名
+                            +"&mark="+mark.reverse().join('') //标记内容
+                            +"&comment=快速标记" //批注
+                            +"&color="+currentColor //标记颜色
+                            +"&tag="+currentTag //标记类型
+                            +"&cfi="+cfi  //标记位置范围
+                            +"&time="+date.getTime() //标记时间
+                    }).then((data)=>{
+                        selectedSentence.removeAllRanges();
+                    })
+                }
+                else
+                {
+                    selectedSentence.removeAllRanges();
+                    alert('请在页面下方选择合适的标签，再进行标记')
+                }
+            };
+
+            reader.book.on("renderer:chapterDisplayed",(chapter)=>{
+                var i = document.getElementById("viewer");
+                var p = i.childNodes[0].childNodes[0];
+                var id = p.getAttribute('id');
+                var obj=document.getElementById(id).contentWindow;
+                obj.onkeydown=function(event){
+                    if (event.keyCode == 38)//上
+                    {
+                        fontSize = fontSize+0.1;
+                        var url = window.location.href.split('#')[1];
+                        var compareCFI = url.split('!')[0]+')';
+                        for(var t=0;t<topic.length;t++)
+                        {
+                            if(compareCFI == topic[t].cfi)
+                            {
+                                reader.book.displayChapter(topic[t].cfi);
+                            }
+                        }
+                    }
+                    if (event.keyCode == 40)//下
+                    {
+                        fontSize = fontSize-0.1;
+                        var url = window.location.href.split('#')[1];
+                        var compareCFI = url.split('!')[0]+')';
+                        for(var t=0;t<topic.length;t++)
+                        {
+                            if(compareCFI == topic[t].cfi)
+                            {
+                                reader.book.displayChapter(topic[t].cfi);
+                            }
+                        }
+                    }
+                } 
+                obj.onmousewheel=function(event){
+                    if(event.shiftKey)
+                    {
+                        if(event.wheelDelta<0)
+                        {
+                            fontSize = fontSize-0.1;
+                            var compareCFI = 'epubcfi('+reader.book.currentChapter.cfiBase+')';
+                            for(var t=0;t<topic.length;t++)
+                            {
+                                if(compareCFI == topic[t].cfi)
+                                {
+                                    reader.book.displayChapter(topic[t].cfi);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            fontSize = fontSize+0.1;
+                            var compareCFI = 'epubcfi('+reader.book.currentChapter.cfiBase+')';
+                            for(var t=0;t<topic.length;t++)
+                            {
+                                if(compareCFI == topic[t].cfi)
+                                {
+                                    reader.book.displayChapter(topic[t].cfi);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if(event.wheelDelta<0)
+                            reader.book.nextPage();
+                        else
+                            reader.book.prevPage();
+                    }
+                    
+                }
+                var ifmObj=obj.document.getElementsByTagName('p');
+                if(markingMode)
+                {
+                    for(let i=0;i<ifmObj.length;i++)
+                    {
+                        var para = ifmObj[i].innerText;
+                        var para1 = [];
+                        for(let j=0;j<para.length;j++)
+                        {
+                            para1.push(`<span style="font-size:${fontSize+'em'}">`+para[j]+'</span>'); //分字
+                        }
+                        ifmObj[i].innerHTML=para1.join('');
+                    }
+                    fetch('/getUserMarks', { 
+                            method: 'post', 
+                            headers: { 
+                            "Content-type": "application/x-www-form-urlencoded" 
+                            }, 
+                            body: "bookname="+bookname
+                    }).then((response) =>{
+                        response.json().then((data)=>{
+                            for(var i=0;i<data.length;i++)
+                            { 
+                                var color = data[i].color;
+                                var markusername = data[i].username;
+                                var comment = data[i].comment;
+
+                                var judgeCFI = data[i].cfi.split('!')[0].substr(8);
+                                if(judgeCFI == chapter.cfiBase)
+                                {
+                                    var epubcfi = new EPUBJS.EpubCFI();
+                                    var doc = reader.book.renderer.doc;
+                                    var range = epubcfi.generateRangeFromCfi(data[i].cfi, doc);
+                                    if (range!=null) 
+                                    {
+                                        var span = range.startContainer.parentNode;
+                                        var spanEnd = span;
+                                        var cfiFront = data[i].cfi.split('!')[1].split(',')[0].split('/');
+                                        if(cfiFront[0]=='')
+                                            cfiFront = data[i].cfi.split('!')[1].split(',')[0].slice(1).split('/');
+                                        var cfiEnd = data[i].cfi.split('!')[1].split(',')[1].slice(0,-1).split('/');
+                                        var spanNum;
+                                        if(cfiFront[1]==cfiEnd[1] || data[i].comment=='快速标记')
+                                        {
+                                            spanNum = (cfiEnd[2] - cfiFront[2]) / 2;
+                                            var j=0;
+                                            while(j<spanNum)
+                                            {
+                                                spanEnd = spanEnd.nextElementSibling;
+                                                j++;
+                                            }
+                                            
+                                        }
+                                        else
+                                        {
+                                            while(cfiFront[1]!=cfiEnd[1]){
+                                                try{
+                                                    if(spanEnd.parentNode.nextElementSibling.innerText!='')
+                                                    {
+                                                        spanEnd = spanEnd.parentNode.nextElementSibling.firstChild;//下一段的首节点
+                                                    }
+                                                    else
+                                                    {
+                                                        spanEnd = spanEnd.parentNode.nextElementSibling.nextElementSibling.firstChild;//某些epub书中含有<p></p>空标签，跳过这些空段
+                                                    }
+                                                    if(spanEnd.parentNode.nextElementSibling.innerText!='')
+                                                        cfiFront[1] = parseInt(cfiFront[1]) + 2;
+                                                    else
+                                                        cfiFront[1] = parseInt(cfiFront[1]) + 4; //同上，空P标签也会占用CFI的一个段落位置
+                                                }
+                                                catch(e){
+                                                    //以防极其特殊的排版方式的书不能解析
+                                                }
+                                            }
+                                            cfiFront[2] = '2';
+                                            while(cfiFront[2]!=cfiEnd[2]){
+                                                spanEnd = spanEnd.nextElementSibling;//下一个兄弟节点
+                                                cfiFront[2] = parseInt(cfiFront[2]) + 2;
+                                            }
+                                        }
+                                        
+                                        if(data[i].username == username)
+                                        {
+                                            if(data[i].tag=='折叠')
+                                            {
+                                                while(span!=spanEnd){ 
+                                                    if(span.innerText!='')
+                                                    {
+                                                        span.style.display = 'none';
+                                                        if(span.nextElementSibling!=null)
+                                                        {
+                                                            span = span.nextElementSibling;//跨SPAN标签的情况
+                                                        }
+                                                        else
+                                                        {   
+                                                            if(span.parentNode.nextElementSibling.innerText!='')
+                                                                span = span.parentNode.nextElementSibling.firstChild;//跨P标签的情况
+                                                            else
+                                                                span = span.parentNode.nextElementSibling;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        span = span.nextElementSibling.firstChild;//某些epub书中含有<p></p>空标签，跳过这些空段
+                                                    }
+                                                }
+                                                span.style.display = 'none';
+                                            }
+                                            else
+                                            {
+                                                Colorful(span,spanEnd,data[i].color);
+                                                if(data[i].comment!=''&&data[i].comment!='快速标记')
+                                                {
+                                                    var commentSpan=document.createElement("span");
+                                                    commentSpan.style.fontSize = '75%';
+                                                    commentSpan.setAttribute('state','1');
+                                                    commentSpan.style.cursor = 'pointer';
+                                                    commentSpan.style.display = 'inline';
+                                                    commentSpan.style.padding = '0.2em 0.6em 0.3em';
+                                                    commentSpan.style.margin = '0.2em 0.6em 0.3em';
+                                                    commentSpan.style.fontWeight = '700';
+                                                    commentSpan.style.lineHeight = '1';
+                                                    commentSpan.style.color = '#fff';
+                                                    commentSpan.style.textAlign = 'center';
+                                                    commentSpan.style.verticalAlign = 'baseline';
+                                                    commentSpan.style.borderRadius = '0.25em';
+                                                    commentSpan.style.lineHeight='2em';
+                                                    commentSpan.style.userSelect='none';
+                                                    commentSpan.style.backgroundColor = data[i].color;
+                                                    clickMarkSelf(commentSpan,data[i],span,spanEnd);
+                                                    if(data[i].tag=='分享')
+                                                        commentSpan.innerHTML=data[i].tag+'：'+data[i].comment+'<span style="color:black;">(👍 '+data[i].likes+')</span>';
+                                                    else
+                                                        commentSpan.innerText=data[i].tag+'：'+data[i].comment;
+                                                    spanEnd.parentNode.appendChild(commentSpan);
+                                                }
+                                                else
+                                                {
+                                                    var commentSpan=document.createElement("span");
+                                                    commentSpan.style.fontSize = '75%';
+                                                    commentSpan.setAttribute('state','1');
+                                                    commentSpan.style.cursor = 'pointer';
+                                                    commentSpan.style.display = 'inline';
+                                                    commentSpan.style.padding = '0.2em 0.6em 0.3em';
+                                                    commentSpan.style.margin = '0.2em 0.6em 0.3em';
+                                                    commentSpan.style.fontWeight = '700';
+                                                    commentSpan.style.lineHeight = '1';
+                                                    commentSpan.style.color = '#fff';
+                                                    commentSpan.style.textAlign = 'center';
+                                                    commentSpan.style.verticalAlign = 'baseline';
+                                                    commentSpan.style.borderRadius = '0.25em';
+                                                    commentSpan.style.lineHeight='2em';
+                                                    commentSpan.style.userSelect='none';
+                                                    commentSpan.style.backgroundColor = data[i].color;
+                                                    clickMarkSelf(commentSpan,data[i],span,spanEnd);
+                                                    if(data[i].tag=='分享')
+                                                        commentSpan.innerHTML=data[i].tag+'<span style="color:black;">(👍 '+data[i].likes+')</span>';
+                                                    else
+                                                        commentSpan.innerText = data[i].tag;
+                                                    spanEnd.parentNode.appendChild(commentSpan);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if(shareMarks == true)
+                                            {
+                                                if(data[i].tag=='分享')
+                                                {
+                                                    var commentSpan=document.createElement("span");
+                                                    var color = data[i].color;
+                                                    if(data[i].comment.length>10)
+                                                        commentSpan.innerHTML='"'+data[i].username+'"的批注：'+data[i].comment.substr(0,10).replace(/[\r\n]/g,"")+'...剩余'+(data[i].comment.length-10)+'字'+'<span style="color:red;">(👍 '+data[i].likes+')</span>';
+                                                    else
+                                                    {
+                                                        if(data[i].comment=='')
+                                                        {
+                                                            commentSpan.innerHTML='"'+data[i].username+'"的标记'+'<span style="color:red;">(👍 '+data[i].likes+')</span>';
+                                                        }
+                                                        else
+                                                        {
+                                                            commentSpan.innerHTML='"'+data[i].username+'"的批注：'+data[i].comment.replace(/[\r\n]/g,"")+'<span style="color:red;">(👍 '+data[i].likes+')</span>';
+                                                        }
+                                                    }
+                                                    commentSpan.setAttribute('state','1');
+                                                    commentSpan.setAttribute('title','查看标记');
+                                                    commentSpan.style.fontSize = '75%';
+                                                    commentSpan.style.cursor = 'pointer';
+                                                    commentSpan.style.display = 'inline';
+                                                    commentSpan.style.padding = '0.2em 0.6em 0.3em';
+                                                    commentSpan.style.margin = '0.2em 0.6em 0.3em';
+                                                    commentSpan.style.fontWeight = '700';
+                                                    commentSpan.style.lineHeight = '1';
+                                                    commentSpan.style.color = '#fff';
+                                                    commentSpan.style.textAlign = 'center';
+                                                    commentSpan.style.verticalAlign = 'baseline';
+                                                    commentSpan.style.borderRadius = '0.25em';
+                                                    commentSpan.style.lineHeight='2em';
+                                                    commentSpan.style.userSelect='none';
+                                                    commentSpan.style.backgroundColor = data[i].color;
+                                                    clickMark(commentSpan,data[i],span,spanEnd);
+                                                    spanEnd.parentNode.appendChild(commentSpan);
+                                                }
+                                            }
+                                        }
+                                        
+                                    }
+                                }
+                            }
+                        });
+                    }).catch(function(e) {
+                        console.log("getUserMarks error");
+                    });
+                }
+                else//分句
+                {
+                    for(let i=0;i<ifmObj.length;i++)
+                    {
+                        var para = ifmObj[i].innerText;
+                        var para1 = [];
+                        var sentence = [];
+                        for(let j=0;j<para.length;j++)
+                        {
+                            if(para[j]!='。')
+                            {
+                                sentence.unshift(`<span style="font-size:${fontSize+'em'}">`+`${para[j]}`+'</span>');
+                            }
+                            else
+                            {
+                                sentence.unshift('<span style="font-weight:bold;font-size:2em;color:#5bc0de;cursor:pointer" onclick="window.parent.getCFI(this);">。</span>');
+                                para1.push(sentence.reverse().join(''));
+                                sentence = [];
+                            }
+                            if(j==para.length-1)
+                            {
+                                para1.push(sentence.reverse().join(''));
+                                sentence = [];
+                            }
+                        }
+                        ifmObj[i].innerHTML=para1.join('');
+                    }
+                }
+            });
+            reader.book.on("renderer:locationChanged",function(){
+                $('#rate').text('当前第'+reader.book.renderer.chapterPos+'页，本章共'+reader.book.renderer.displayedPages+'页');
+                $('#rate').css('width',`${reader.book.renderer.chapterPos/reader.book.renderer.displayedPages*100}%`);
+            });
+            reader.book.on('renderer:mouseup', function(event) { //绑定鼠标抬起事件，再判断是否存在选中文本
+                if(markingMode)
+                {
+                    selected = reader.book.renderer.render.window.getSelection();
+                    if(selected!='' && markingMode)
+                        $('#exampleModal').modal('show');
+                }
+            });
+            var tagSelect='无标签';
+            var color = '#ffffff';
+            fetch('/getUserTags', { 
+                method: 'post', 
+                headers: { 
+                "Content-type": "application/x-www-form-urlencoded" 
+                }, 
+                body: "username="+username //用户名
+            }).then(
+                response => response.json()
+            ).then((user)=>{
+                   tags = user[0].tags.split(',').slice(0,-1);
+                   for(var tag=0;tag<tags.length;tag++)
+                   {
+                        $('#tags').prepend(`<span class="label label-primary" style="cursor:pointer;background-color:#${tags[tag].split('#')[1]}" onclick='tagsSelect("${tags[tag].split('#')[0]}","#${tags[tag].split('#')[1]}");' id=${tags[tag]}>${tags[tag].split('#')[0]}</span> `);
+                   }
+            }).catch(function(e) {
+                console.log(e);
+            });
+
+            function tagsSelect(tag,col){
+                tagSelect = tag;
+                $('#commentParagraph').css('background-color',col);
+                color = col;
+            }
+            
+            $('#tagNameInput').hide(); 
+            $('#color').hide();
+            $('#submitAddTag').hide(); 
+            $('#closeAddTag').hide();
+            $('#closeRemove').hide();
+            $('#closeRemove').click(()=>{
+                $('#addTag').show();
+                $('#removeTag').show();
+                $('#closeRemove').hide();
+                $('.glyphicon-remove').remove();
+            })
+            $('#closeAddTag').click(()=>{
+                $('#tagNameInput').val('').hide();
+                $('#color').hide();
+                $('#submitAddTag').hide();
+                $('#closeAddTag').hide();
+                $('#addTag').show();
+                $('#removeTag').show();
+            })
+            $('#addTag').click(()=>{
+                $('#addTag').hide();
+                $('#removeTag').hide();
+                $('#tagNameInput').show();
+                $('#color').show();
+                $('#submitAddTag').show(); 
+                $('#closeAddTag').show();
+            })
+            $('#removeTag').click(()=>{
+                $('#addTag').hide();
+                $('#tagNameInput').hide();
+                $('#color').hide();
+                $('#submitAddTag').hide(); 
+                $('#closeAddTag').hide();
+                $('#removeTag').hide();
+                $('#closeRemove').show();
+                fetch('/getUserTags', { 
+                    method: 'post', 
+                    headers: { 
+                    "Content-type": "application/x-www-form-urlencoded" 
+                    }, 
+                    body: "username="+username //用户名
+                }).then(
+                    response => response.json()
+                ).then((user)=>{
+                    tagsForRemove = user[0].tags.split(',').slice(0,-1);
+                    for(let i=0;i<$('#tags').children().length;i++)
+                    {
+                        var iconRemove = document.createElement('span');
+                        iconRemove.setAttribute('class','glyphicon glyphicon-remove');
+                        iconRemove.style.fontSize = '1.2em';
+                        iconRemove.style.position = 'relative';
+                        iconRemove.style.left = '5px';
+                        iconRemove.onclick=function(){
+                            var index = tagsForRemove.indexOf($('#tags').children()[i].getAttribute('id'));
+                            if(index>=0 && tagsForRemove.length>=3)
+                            {
+                                tagsForRemove.splice(index,1);
+                                var newtags = tagsForRemove.join(',')+',';
+                                $('#tags').children()[i].style.display = 'none';
+                                fetch('/removeUserTag', { 
+                                    method: 'post', 
+                                    headers: { 
+                                    "Content-type": "application/x-www-form-urlencoded" 
+                                    }, 
+                                    body:"username="+username+"&tags="+newtags
+                                })
+                            }
+                            else
+                            {
+                                alert('请最少保留2个标签');
+                            }
+                        }
+                        $('#tags').children()[i].append(iconRemove);
+                    }
+                }).catch(function(e) {
+                    console.log(e);
+                });
+            })
+            $('#submitAddTag').click(()=>{
+                if($('#tagNameInput').val()!='')
+                {
+                    if($('#tagNameInput').val().indexOf(' ')>=0)
+                    {
+                        $('#tagNameInput').val('');
+                        $('#tagNameInput').attr('placeholder','请删除空格~');
+                        $('#tagNameInput').focus();
+                    }
+                    else
+                    {
+                        fetch('/getUserTags', { 
+                            method: 'post', 
+                            headers: { 
+                            "Content-type": "application/x-www-form-urlencoded" 
+                            }, 
+                            body: "username="+username //用户名
+                        }).then(
+                            response => response.json()
+                        ).then((user)=>{
+                            tags = user[0].tags.split(',').slice(0,-1);
+                            tagSelect = $('#tagNameInput').val();
+                            color = $('#color').val();
+                            $('#tags').prepend(`<span class="label label-primary" onclick='tagsSelect("${tagSelect}","${color}");' id="${tagSelect}${color}" style="cursor:pointer;background-color:${color}">${tagSelect}</span> `);
+                            $('#tagNameInput').val('').hide();
+                            $('#color').hide();
+                            $('#submitAddTag').hide();
+                            $('#closeAddTag').hide();
+                            $('#addTag').show();
+                            $('#removeTag').show();
+                            var newtags = tags.join(',')+','+tagSelect+color+',';
+                            fetch('/saveUserTags', { 
+                                method: 'post', 
+                                headers: { 
+                                "Content-type": "application/x-www-form-urlencoded" 
+                                }, 
+                                body:"username="+username+"&tag="+newtags
+                            })
+                        }).catch(function(e) {
+                            console.log(e);
+                        });
+                    }
+                }
+                else
+                {
+                    $('#tagNameInput').focus();
+                }
+            })
+            $('#exampleModal').on('show.bs.modal', (event) =>{
+                if(selected=='')
+                {
+                    $('#commentParagraph').text('未选中任何内容');
+                    $('#tagFrame').css('display','none');
+                    $('#message-text').css('display','none');
+                    $('#commentFinish').css('display','none');
+                }
+                else
+                {
+                    document.onkeydown=null;
+                    tagSelect='无标签';
+                    color = '#ffffff';
+                    $('#tagFrame').css('display','');
+                    $('#message-text').css('display','');
+                    $('#message-text').text('');
+                    $('#commentFinish').css('display','');
+                    $('#commentParagraph').text(selected);
+                    $('#message-text').keyup((e)=>{
+                        $('#commentParagraph').text(selected+'【"'+username+'"批注：'+$('#message-text').val()+'】');
+                    })
+                    if(selected.toString().indexOf('👍')>=0)
+                    {
+                        $('#message-text').attr('placeholder','注意：您选择的文本中含有其他读者的标记。');
+                    }
+                    else
+                    {
+                        $('#message-text').attr('placeholder','提示：在上方选择一个合适的标签，并在此作一些批注。');
+                    }
+                    $('#commentFinish').click(()=>{
+                        try{
+                            var range = selected.getRangeAt(0);
+                            var span = range.startContainer.parentNode;
+                            var epubcfi = new EPUBJS.EpubCFI();
+                            var chapter = reader.book.currentChapter;
+                            var cfiBase = chapter.cfiBase;
+                            var cfi = epubcfi.generateCfiFromRange(range, cfiBase);//选中结束的位置
+                            var myDate = new Date();
+                            if(span.parentNode.nodeName=='P' && tagSelect!='无标签')
+                            {
+                                span = Colorful(span,range.endContainer.parentNode,color);
+                                var commentSpan=document.createElement("span");
+                                if($('#message-text').val()!='')
+                                {
+                                    var commentText=document.createTextNode(tagSelect+'：'+$('#message-text').val());
+                                }
+                                else
+                                {
+                                    var commentText=document.createTextNode(tagSelect);
+                                }
+                                commentSpan.style.fontSize = '75%';
+                                commentSpan.style.cursor = 'pointer';
+                                commentSpan.style.display = 'inline';
+                                commentSpan.style.padding = '0.2em 0.6em 0.3em';
+                                commentSpan.style.margin = '0.2em 0.6em 0.3em';
+                                commentSpan.style.fontWeight = '700';
+                                commentSpan.style.lineHeight = '1';
+                                commentSpan.style.color = '#fff';
+                                commentSpan.style.textAlign = 'center';
+                                commentSpan.style.verticalAlign = 'baseline';
+                                commentSpan.style.borderRadius = '0.25em';
+                                commentSpan.style.backgroundColor = color;
+                                commentSpan.style.lineHeight='2em';
+                                commentSpan.style.userSelect='none';
+                                commentSpan.appendChild(commentText);
+                                span.parentNode.appendChild(commentSpan);
+                                $('#successedMark').show();
+                                setTimeout(() => {
+                                    $('#successedMark').hide();
+                                }, 2000);
+                                fetch('/mark', { 
+                                    method: 'post', 
+                                    headers: { 
+                                    "Content-type": "application/x-www-form-urlencoded" 
+                                    }, 
+                                    body: "username="+username //用户名
+                                        +"&bookname="+bookname //书名
+                                        +"&mark="+selected.toString() //标记内容
+                                        +"&comment="+$('#message-text').val() //批注
+                                        +"&color="+color //标记颜色
+                                        +"&tag="+tagSelect //标记类型
+                                        +"&cfi="+cfi  //标记位置范围
+                                        +"&time="+myDate.getTime() //标记时间
+                                })
+                            }
+                            else
+                            {
+                                $('#failedMarkSelect').show();
+                                setTimeout(() => {
+                                    $('#failedMarkSelect').hide();
+                                }, 2000);
+                            }
+                            color = '#ffffff';
+                            selected.removeAllRanges();
+                            $('#commentParagraph').css('background-color',color);
+                            $('#message-text').val('');
+                            $('#exampleModal').modal('hide');
+                        }
+                        catch(err)
+                        {
+                        }
+                    })
+                }
+            })
+      </script>
+    </body>
+</html>
+
+
+

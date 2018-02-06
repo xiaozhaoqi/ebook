@@ -1,0 +1,90 @@
+.ant-affix{
+    overflow:visible;
+}
+.Card{
+    margin-bottom:10px;
+    background:#fff;
+    overflow:hidden;
+    border-radius:2px;
+    -webkit-box-shadow:0 1px 3px rgba(0,0,0,.1);
+    box-shadow:0 1px 3px rgba(0,0,0,.1);
+    -webkit-box-sizing:border-box;
+    box-sizing:border-box;
+}
+.ant-layout{
+    background:#f3f3f3;
+}
+.ant-carousel .slick-slide {
+    text-align: center;
+    height: 390px;
+    line-height: 390px;
+    background: #f3f3f3;
+    overflow: hidden;
+}
+
+.ant-carousel .slick-dots li button{
+    background-color: #fff;
+    border: 1px solid rgb(91, 192, 222);
+}
+
+.ant-carousel .slick-dots li.slick-active button{
+    background-color: rgb(91, 192, 222);
+}
+
+.bubble circle{
+    stroke: black;
+    stroke-width: 2px;
+}
+
+.bubble text{
+    fill: black;
+    font-size: 14px;
+    font-family: arial;
+    text-anchor: middle;
+}
+
+.bsTags{
+    color: rgb(255, 255, 255);
+    cursor: pointer; 
+    display: inline; 
+    padding: 0.2em 0.6em 0.3em; 
+    margin: 0.2em 0.6em 0.3em; 
+    font-weight: 700; 
+    line-height: 2em; 
+    text-align: center; 
+    vertical-align: baseline; 
+    border-radius: 0.25em;
+    display:inline-block;
+}
+
+.mainTags{
+    color: rgb(255, 255, 255);
+    cursor: pointer; 
+    display: inline; 
+    padding: 0.1em 0.1em; 
+    margin: 0 0.1em;
+    font-weight: 100; 
+    line-height: 1em; 
+    text-align: center; 
+    vertical-align: baseline; 
+    border-radius: 0.25em;
+    display:inline-block;
+}
+.mainTags:hover{
+    font-weight: bolder;
+    border:2px solid #5bc0de;
+    font-size: 2em;
+}
+
+.mainItem{
+    display: none;
+}
+
+@media screen and (max-width: 1150px) {
+    .img {
+        display: none;
+    }
+    .mainItem{
+        display: inline-block;
+    }
+}
