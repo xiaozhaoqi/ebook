@@ -174,7 +174,9 @@
                 $('#username').tooltip('show');
             })
             var reader = ePubReader("./book/"+bookname);
-            
+            window.onbeforeunload = function(e){
+                e.returnValue = '确定离开阅读器吗？数据已上传至服务器'
+            }
             var topic = 0;
             reader.book.getToc().then((toc)=>{
                 topic = toc;
@@ -829,7 +831,7 @@
                             {
                                 sentence.unshift('<span style="font-weight:bold;font-size:2em;color:#5bc0de;cursor:pointer" onclick="window.parent.getCFI(this);">。</span>');
                                 para1.push(sentence.reverse().join(''));
-                                sentence = [];
+                                sentence = [];//可用版本
                             }
                             if(j==para.length-1)
                             {
@@ -875,7 +877,8 @@
 
             function tagsSelect(tag,col){
                 tagSelect = tag;
-                $('#commentParagraph').css('background-color',col);
+                $('#message-text').attr('disabled',false);
+                $('#commentParagraph').css('color',col);
                 color = col;
             }
             
@@ -903,6 +906,7 @@
                 $('#removeTag').hide();
                 $('#tagNameInput').show();
                 $('#color').show();
+                $('#color').val('#5bc0de');
                 $('#submitAddTag').show(); 
                 $('#closeAddTag').show();
             })
@@ -980,21 +984,35 @@
                             tags = user[0].tags.split(',').slice(0,-1);
                             tagSelect = $('#tagNameInput').val();
                             color = $('#color').val();
-                            $('#tags').prepend(`<span class="label label-primary" onclick='tagsSelect("${tagSelect}","${color}");' id="${tagSelect}${color}" style="cursor:pointer;background-color:${color}">${tagSelect}</span> `);
-                            $('#tagNameInput').val('').hide();
-                            $('#color').hide();
-                            $('#submitAddTag').hide();
-                            $('#closeAddTag').hide();
-                            $('#addTag').show();
-                            $('#removeTag').show();
-                            var newtags = tags.join(',')+','+tagSelect+color+',';
-                            fetch('/saveUserTags', { 
-                                method: 'post', 
-                                headers: { 
-                                "Content-type": "application/x-www-form-urlencoded" 
-                                }, 
-                                body:"username="+username+"&tag="+newtags
-                            })
+                            let amateurishMan = 0;
+                            for(let i=0;i<tags.length;i++)
+                            {
+                                let tagName = tags[i].split('#')[0];
+                                if(tagName == tagSelect)
+                                    amateurishMan = 1;
+                            }
+                            if(amateurishMan == 1)
+                            {
+                                alert('这个标签已经存在了，如更换颜色请删除原标签后再新建');
+                            }
+                            else
+                            {
+                                $('#tags').prepend(`<span class="label label-primary" onclick='tagsSelect("${tagSelect}","${color}");' id="${tagSelect}${color}" style="cursor:pointer;background-color:${color}">${tagSelect}</span> `);
+                                $('#tagNameInput').val('').hide();
+                                $('#color').hide();
+                                $('#submitAddTag').hide();
+                                $('#closeAddTag').hide();
+                                $('#addTag').show();
+                                $('#removeTag').show();
+                                var newtags = tags.join(',')+','+tagSelect+color+',';
+                                fetch('/saveUserTags', { 
+                                    method: 'post', 
+                                    headers: { 
+                                    "Content-type": "application/x-www-form-urlencoded" 
+                                    }, 
+                                    body:"username="+username+"&tag="+newtags
+                                })
+                            }
                         }).catch(function(e) {
                             console.log(e);
                         });
@@ -1018,13 +1036,14 @@
                     document.onkeydown=null;
                     tagSelect='无标签';
                     color = '#ffffff';
+                    $('#message-text').attr('disabled',true);
                     $('#tagFrame').css('display','');
                     $('#message-text').css('display','');
                     $('#message-text').text('');
                     $('#commentFinish').css('display','');
                     $('#commentParagraph').text(selected);
                     $('#message-text').keyup((e)=>{
-                        $('#commentParagraph').text(selected+'【"'+username+'"批注：'+$('#message-text').val()+'】');
+                        $('#commentParagraph').text(selected+'【'+tagSelect+'：'+$('#message-text').val()+'】');
                     })
                     if(selected.toString().indexOf('👍')>=0)
                     {
