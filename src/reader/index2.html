@@ -34,7 +34,7 @@
                     <span id="book-title"></span>
                     <span id="title-seperator">&nbsp;&nbsp;–&nbsp;&nbsp;</span>
                     <span id="chapter-title"></span>
-                    <div id="failedMark" class="alert alert-info" role="alert">标记失败，原因：所选句子格式错误，多试几次即可。</div>
+                    <div id="failedMark" class="alert alert-info" role="alert">标记失败，原因：所点击的句子不支持快速标记。</div>
                     <div id="failedMarkSelect" class="alert alert-info" role="alert">标记失败，原因：未选择标签或所选内容不在正文中。</div>
                     <div id="successedMark" class="alert alert-success" role="alert">标记成功，可在主页标记界面查看分类、统计、索引等信息。</div>
                 </div>
@@ -196,7 +196,6 @@
             var shareMarks = true;
             var markingMode = true;
             var tags = [];
-            var tagsForAdd =[];
             var tagsForRemove =[];
             var currentTag = '';
             var currentColor = '';
@@ -235,6 +234,7 @@
                 if(markingMode)
                 {
                     markingMode = false;
+                    currentTag = '';
                     for(var tagItem=0;tagItem<tags.length;tagItem++)
                     {
                         if(tags[tagItem].split('#')[0]!='分享')
@@ -472,34 +472,40 @@
                 currentTag = a;
                 currentColor = b;
             };
-            function getCFI(end){   //句子模式下，点击句号，标记该句子，并生成可与普通模式兼容的CFI位置。
-                let mark = [];
-                let t = end.previousElementSibling;
-                while(t.previousElementSibling!=null && t.previousElementSibling.innerText!="。")
+
+            function getCFI(end) {   //句子模式下，点击任意字，标记该句子，并生成可与普通模式兼容的CFI位置。
+                if (currentColor != '' && currentTag != '')//color防止重复标记，current防止没有标签和颜色
                 {
-                    mark.push(t.innerText);
-                    t=t.previousElementSibling;
-                }
-                mark.push(t.innerText);
-                let selectedSentence = reader.book.renderer.render.window.getSelection();
-                selectedSentence.modify("extend", "left", "sentence");
-                let range = selectedSentence.getRangeAt(0);
-                let epubcfi = new EPUBJS.EpubCFI();
-                let cfi = epubcfi.generateCfiFromRange(range, reader.book.currentChapter.cfiBase);
-                if(currentColor!='' && currentTag!='')//color防止重复标记，current防止没有标签和颜色
-                {
-                    if(cfi=='error')
-                    {
+                    let first = end;
+                    let t = end;
+                    let count = 0;
+                    while (t != null && t.innerText != "。" && t != '') { //向前面遍历到句号
+                        count++;
+                        t.style.color = currentColor;
+                        first = t;
+                        t = t.previousElementSibling;
+                    }
+                    reader.book.renderer.render.window.getSelection().selectAllChildren(first);
+                    let selectedSentence = reader.book.renderer.render.window.getSelection();
+                    while (count--) {
+                        selectedSentence.modify("extend", "right", "character");
+                    }
+                    t = end.nextElementSibling;
+                    while (t != null && t.innerText != "。") {
+                        selectedSentence.modify("extend", "right", "character");
+                        t.style.color = currentColor;
+                        t = t.nextElementSibling;
+                    }
+                    let range = selectedSentence.getRangeAt(0);
+                    let epubcfi = new EPUBJS.EpubCFI();
+                    let cfi = epubcfi.generateCfiFromRange(range, reader.book.currentChapter.cfiBase);
+                    if (cfi == 'error') {
                         $('#failedMark').show();
                         setTimeout(() => {
                             $('#failedMark').hide();
                         }, 2000);
                         selectedSentence.removeAllRanges();
                         return;
-                    }
-                    while(t!=end){
-                        t.style.backgroundColor=currentColor;
-                        t=t.nextElementSibling;
                     }
                     var date = new Date();
                     $('#successedMark').show();
@@ -513,7 +519,7 @@
                         }, 
                         body: "username="+username //用户名
                             +"&bookname="+bookname //书名
-                            +"&mark="+mark.reverse().join('') //标记内容
+                            +"&mark="+ range.toString()//标记内容
                             +"&comment=快速标记" //批注
                             +"&color="+currentColor //标记颜色
                             +"&tag="+currentTag //标记类型
@@ -523,9 +529,7 @@
                         selectedSentence.removeAllRanges();
                     })
                 }
-                else
-                {
-                    selectedSentence.removeAllRanges();
+                else {
                     alert('请在页面下方选择合适的标签，再进行标记')
                 }
             };
@@ -816,30 +820,24 @@
                 }
                 else//分句
                 {
-                    for(let i=0;i<ifmObj.length;i++)
-                    {
+                    for (let i = 0; i < ifmObj.length; i++) {
                         var para = ifmObj[i].innerText;
                         var para1 = [];
                         var sentence = [];
-                        for(let j=0;j<para.length;j++)
-                        {
-                            if(para[j]!='。')
-                            {
-                                sentence.unshift(`<span style="font-size:${fontSize+'em'}">`+`${para[j]}`+'</span>');
+                        for (let j = 0; j < para.length; j++) {
+                            if (para[j] != '。') {
+                                sentence.unshift(`<span style="cursor:pointer;font-size:${fontSize + 'em'}" onclick="window.parent.getCFI(this);">` + `${para[j]}` + '</span>');
                             }
                             else
                             {
-                                sentence.unshift('<span style="font-weight:bold;font-size:2em;color:#5bc0de;cursor:pointer" onclick="window.parent.getCFI(this);">。</span>');
-                                para1.push(sentence.reverse().join(''));
-                                sentence = [];//可用版本
+                                sentence.unshift(`<span style="cursor:pointer;font-size:${fontSize + 'em'}">` + `${para[j]}` + '</span>');
                             }
-                            if(j==para.length-1)
-                            {
+                            if (j == para.length - 1) {
                                 para1.push(sentence.reverse().join(''));
                                 sentence = [];
                             }
                         }
-                        ifmObj[i].innerHTML=para1.join('');
+                        ifmObj[i].innerHTML = para1.join('');
                     }
                 }
             });
