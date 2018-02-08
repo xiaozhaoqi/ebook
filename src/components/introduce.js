@@ -169,6 +169,7 @@ class myIntroduce extends Component {
         else
         {
             let newlike = likes + 1;
+
             fetch('/goodMark',{
                 method:'POST',
                 headers: { 
@@ -314,7 +315,7 @@ class myIntroduce extends Component {
                             </div>
                             <div style={{bottom:'2px',float:'right',margin:'5px 0 0 0'}}>
                                 <Button icon="book" style={{color:'#5bc0de',borderRadius:'20px'}} title='去正文阅读~' onClick={()=>{this.state.username!=''?window.open(item.href):window.location.href='/login';}}><span >{item.bookname.substr(0,item.bookname.indexOf('.epub'))}</span></Button>
-                                <Button icon="like" style={{color:'#5bc0de',borderRadius:'20px'}} title='赞这条标记~' onClick={((item)=>{ return ()=>{this.likes(item.id,item.likes)}})(item)}><span >{item.likes}</span></Button>
+                                <Button icon="like" style={{color:'#5bc0de',borderRadius:'20px'}} title='赞这条标记~' onClick={((item)=>{return ()=>{this.likes(item.id,item.likes)}})(item)}><span >{item.likes}</span></Button>
                             </div>
                         </div>
                     )}

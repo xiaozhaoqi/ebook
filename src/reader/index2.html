@@ -177,22 +177,17 @@
             window.onbeforeunload = function(e){
                 e.returnValue = '确定离开阅读器吗？数据已上传至服务器'
             }
-            var topic = 0;
-            reader.book.getToc().then((toc)=>{
-                topic = toc;
+            reader.book.getToc().then(async (toc)=>{
                 if(cfi.length>=7) //指定cfi的情况
                 {
-                    var compareCFI = cfi.split('!')[0]+')';
-                    for(var t=0;t<topic.length;t++)
-                    {
-                        if(compareCFI == topic[t].cfi)
-                        {
-                            reader.book.displayChapter(topic[t].cfi);
-                        }
-                    }
+                    await reader.book.displayChapter(cfi);
                 }
             });
-
+            async function jumpToNow(){
+                let page = reader.book.renderer.chapterPos;
+                await reader.book.displayChapter(reader.book.currentChapter.cfi);
+                reader.book.renderer.page(page);
+            }
             var shareMarks = true;
             var markingMode = true;
             var tags = [];
@@ -230,7 +225,7 @@
                 });
             })
 
-            $('#markingMode').click(()=>{
+            $('#markingMode').click(async ()=>{
                 if(markingMode)
                 {
                     markingMode = false;
@@ -255,28 +250,13 @@
                                 </button> 
                             `);
                     }
-                    
-                    var compareCFI = 'epubcfi('+reader.book.currentChapter.cfiBase+')';
-                    for(var t1=0;t1<topic.length;t1++)
-                    {
-                        if(compareCFI == topic[t1].cfi)
-                        {
-                            reader.book.displayChapter(topic[t1].cfi);
-                        }
-                    }
+                    jumpToNow();
                 }
                 else
                 {
                     markingMode = true;
                     $('#tagBottomItem').children().remove();
-                    var compareCFI = 'epubcfi('+reader.book.currentChapter.cfiBase+')';
-                    for(var t2=0;t2<topic.length;t2++)
-                    {
-                        if(compareCFI == topic[t2].cfi)
-                        {
-                            reader.book.displayChapter(topic[t2].cfi);
-                        }
-                    }
+                    jumpToNow();
                 }
             })
 
@@ -285,29 +265,13 @@
                     {
                         shareMarks = true;
                         $('#shareMarks').html('<span class="glyphicon glyphicon-eye-open"></span>');
-                        var url = window.location.href.split('#')[1];
-                        var compareCFI = url.split('!')[0]+')';
-                        for(var t=0;t<topic.length;t++)
-                        {
-                            if(compareCFI == topic[t].cfi)
-                            {
-                                reader.book.displayChapter(topic[t].cfi);
-                            }
-                        }
+                        jumpToNow();
                     }
                     else
                     {
                         shareMarks = false;
                         $('#shareMarks').html('<span class="glyphicon glyphicon-eye-close"></span>');
-                        var url = window.location.href.split('#')[1];
-                        var compareCFI = url.split('!')[0]+')';
-                        for(var t=0;t<topic.length;t++)
-                        {
-                            if(compareCFI == topic[t].cfi)
-                            {
-                                reader.book.displayChapter(topic[t].cfi);
-                            }
-                        }
+                        jumpToNow();
                     }
             })
 
@@ -474,29 +438,23 @@
             };
 
             function getCFI(end) {   //句子模式下，点击任意字，标记该句子，并生成可与普通模式兼容的CFI位置。
+                let range = document.createRange();
                 if (currentColor != '' && currentTag != '')//color防止重复标记，current防止没有标签和颜色
                 {
                     let first = end;
+                    let last = end;
                     let t = end;
-                    let count = 0;
-                    while (t != null && t.innerText != "。" && t != '') { //向前面遍历到句号
-                        count++;
-                        t.style.color = currentColor;
+                    while (t != null && t.innerText != "。" && t != '') {
                         first = t;
                         t = t.previousElementSibling;
                     }
-                    reader.book.renderer.render.window.getSelection().selectAllChildren(first);
-                    let selectedSentence = reader.book.renderer.render.window.getSelection();
-                    while (count--) {
-                        selectedSentence.modify("extend", "right", "character");
-                    }
+                    range.setStart(first.firstChild,0);
                     t = end.nextElementSibling;
-                    while (t != null && t.innerText != "。") {
-                        selectedSentence.modify("extend", "right", "character");
-                        t.style.color = currentColor;
+                    while (t != null && t.innerText != "。" && t != '') {
+                        last = t;
                         t = t.nextElementSibling;
                     }
-                    let range = selectedSentence.getRangeAt(0);
+                    range.setEnd(last.firstChild,0)
                     let epubcfi = new EPUBJS.EpubCFI();
                     let cfi = epubcfi.generateCfiFromRange(range, reader.book.currentChapter.cfiBase);
                     if (cfi == 'error') {
@@ -504,9 +462,14 @@
                         setTimeout(() => {
                             $('#failedMark').hide();
                         }, 2000);
-                        selectedSentence.removeAllRanges();
                         return;
                     }
+                    while(first!=last)
+                    {   
+                        first.style.color = currentColor;
+                        first = first.nextElementSibling;
+                    }
+                    last.style.color = currentColor;
                     var date = new Date();
                     $('#successedMark').show();
                     setTimeout(() => {
@@ -525,8 +488,6 @@
                             +"&tag="+currentTag //标记类型
                             +"&cfi="+cfi  //标记位置范围
                             +"&time="+date.getTime() //标记时间
-                    }).then((data)=>{
-                        selectedSentence.removeAllRanges();
                     })
                 }
                 else {
@@ -543,28 +504,12 @@
                     if (event.keyCode == 38)//上
                     {
                         fontSize = fontSize+0.1;
-                        var url = window.location.href.split('#')[1];
-                        var compareCFI = url.split('!')[0]+')';
-                        for(var t=0;t<topic.length;t++)
-                        {
-                            if(compareCFI == topic[t].cfi)
-                            {
-                                reader.book.displayChapter(topic[t].cfi);
-                            }
-                        }
+                        jumpToNow();
                     }
                     if (event.keyCode == 40)//下
                     {
                         fontSize = fontSize-0.1;
-                        var url = window.location.href.split('#')[1];
-                        var compareCFI = url.split('!')[0]+')';
-                        for(var t=0;t<topic.length;t++)
-                        {
-                            if(compareCFI == topic[t].cfi)
-                            {
-                                reader.book.displayChapter(topic[t].cfi);
-                            }
-                        }
+                        jumpToNow();
                     }
                 } 
                 obj.onmousewheel=function(event){
@@ -573,26 +518,12 @@
                         if(event.wheelDelta<0)
                         {
                             fontSize = fontSize-0.1;
-                            var compareCFI = 'epubcfi('+reader.book.currentChapter.cfiBase+')';
-                            for(var t=0;t<topic.length;t++)
-                            {
-                                if(compareCFI == topic[t].cfi)
-                                {
-                                    reader.book.displayChapter(topic[t].cfi);
-                                }
-                            }
+                            jumpToNow();
                         }
                         else
                         {
                             fontSize = fontSize+0.1;
-                            var compareCFI = 'epubcfi('+reader.book.currentChapter.cfiBase+')';
-                            for(var t=0;t<topic.length;t++)
-                            {
-                                if(compareCFI == topic[t].cfi)
-                                {
-                                    reader.book.displayChapter(topic[t].cfi);
-                                }
-                            }
+                            jumpToNow();
                         }
                     }
                     else

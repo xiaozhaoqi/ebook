@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import {Form,Input,Checkbox,Button,Tabs,Table,Icon,message,Divider,Switch} from 'antd';
+import {Form,Input,Checkbox,Button,Tabs,Table,Icon,Popover,message,Divider,Switch} from 'antd';
 import BookUpload from './bookUpload';
 const Search = Input.Search;
 const TabPane = Tabs.TabPane;
@@ -49,7 +49,6 @@ class BookManager extends Component {
         this.callback=this.callback.bind(this);
         this.delete=this.delete.bind(this);
         this.search=this.search.bind(this);
-        this.marks=this.marks.bind(this);
         this.collect=this.collect.bind(this);
         this.collectBooks=this.collectBooks.bind(this);
         this.cancelCollect=this.cancelCollect.bind(this);
@@ -229,50 +228,6 @@ class BookManager extends Component {
           
     }
 
-    marks(record){
-        let marks = this.refs.marks;
-        fetch('/getUserMarks',{
-            method:'POST' ,
-            headers: { 
-                "Content-type": "application/x-www-form-urlencoded" 
-            }, 
-            body: "bookname="+record.name
-        }).then(
-              response => response.json()
-        ).then(function (data) { 
-            marks.style.display='block';
-            if(data.length==0)
-            {
-                marks.innerHTML=`
-                &nbsp;<span style="font-weight:bold;">&nbsp;${record.name.slice(0,-5)}&nbsp;</span>已有&nbsp;<span style="font-size:1.2em;color:blue">0</span>&nbsp;条标记。
-                <hr/>
-                `;
-            }
-            else
-            {
-                let markItem='<p>';
-                for(let i=0;i<data.length;i++)
-                {
-                    if(data[i].tag=='分享' && data[i].comment!='')
-                        markItem = markItem + '<span style="color:blue;">' + data[i].username + '</span>' + '&nbsp;说：' + data[i].comment + '</p><p>'
-                }
-                markItem = markItem + '</p>';
-                marks.innerHTML=`
-                    &nbsp;<span style="font-weight:bold;">&nbsp;${record.name.slice(0,-5)}&nbsp;</span>已有&nbsp;<span style="font-size:1.2em;color:blue">${data.length}</span>&nbsp;条标记。
-                    <br/>
-                    <span>&nbsp;最新一条标记于${data[data.length-1].time}</span>
-                    <hr/>
-                    ${markItem}
-                    `;
-            }
-            
-        }).catch(function (error) { 
-            console.log(error)
-            message.error(`网络错误!`);
-        })
-          
-    }
-
     callback() {
         var mem=0;
         var mark=0;
@@ -305,16 +260,52 @@ class BookManager extends Component {
   
     render() {
         const columns = [{
-            title: '图书编号',
-            dataIndex: 'id',
-            key: 'id',
+            title: '分享日期',
+            dataIndex: 'time',
+            key: 'time',
+            width:'100px',
+            render: (text, record) => (text.split(' ')[0])
         },{
             title: '书名',
             dataIndex: 'name',
             key: 'name',
-            render: (text, record) => (
-                <span>{text.slice(0,text.indexOf('.epub'))}</span>
-            )
+            render: (text, record) => {
+                if(record.douban!='undefined' && record.douban!='' && record.douban!=null && record.douban[record.douban.length-1]=='}')
+                {
+                    let json = JSON.parse(record.douban);
+                    return  <Popover 
+                                overlayStyle={{width:'46%'}}
+                                placement="right" 
+                                title={<span><span style={{fontSize:'1.2em',fontWeight:'bold',float:'left'}}>{record.name.slice(0,-5)}</span><span style={{float:'right'}}>已累计{record.markNum}条标记</span></span>}
+                                content={<div>
+                                            {json.author!=''?<p>作者：{json.author}</p>:null}
+                                            {json.translator.length>0?<p>{json.translator}</p>:null}
+                                            {json.pubdate!=''?<p>出版日期：{json.pubdate}</p>:null}
+                                            {json.publisher!=''?<p>出版单位：{json.publisher}</p>:null}
+                                            {json.isbn13!=''?<p>ISBN：{json.isbn13}</p>:null}
+                                            {json.pages!=''?<p>页数：{json.pages}</p>:null}
+                                            <p>评分：{json.rating.average} <span style={{fontSize:'0.8em'}}> (来自豆瓣阅读的{json.rating.numRaters}位读者评价)</span></p>
+                                            {json.price!=''?<p>参考价格：{json.price}</p>:null}
+                                            {json.summary!=''?<pre>简介：{json.summary}</pre>:null}
+                                            <hr/>
+                                            <p style={{fontSize:'0.8em'}}>以上内容来自第三方数据，与实际内容可能存在不一致的情况。</p>
+                                        </div>}
+                            >
+                                <span style={{cursor:'pointer',fontSize:'1.1em'}}>{text.slice(0,text.indexOf('.epub'))}</span>
+                            </Popover>
+                }
+                else
+                {
+                    return <Popover 
+                                overlayStyle={{width:'46%'}}
+                                placement="right" 
+                                title={<span><span style={{fontSize:'1.2em',fontWeight:'bold',float:'left'}}>{record.name.slice(0,-5)}</span><span style={{float:'right'}}>已累计{record.markNum}条标记</span></span>}
+                                content='暂无此书数据'
+                            >
+                                <span style={{cursor:'pointer',fontSize:'1.1em'}}>{text.slice(0,text.indexOf('.epub'))}</span>
+                            </Popover>
+                }
+        }
         },{
             title: '大小(总计'+(this.state.memory/1048576).toFixed(1)+'mb)',
             dataIndex: 'size',
@@ -331,7 +322,7 @@ class BookManager extends Component {
             key: 'markNum',
             sorter: (a, b) => a.markNum - b.markNum,
             render:(text,record)=>(
-                <a href="javascript:;" onMouseOver={()=>this.marks(record)} onMouseOut={()=>{this.refs.marks.style.display='none'}}>{text}</a>
+                    <span>{text}</span>
             )
         },{
             title: '操作',
@@ -412,7 +403,6 @@ class BookManager extends Component {
                         <BookUpload/>
                     </TabPane>
                 </Tabs>
-                <div className='Card' ref="marks" style={{borderRadius:'10px',boxShadow:'1px 1px 15px #888888',position:'fixed',left:'15%',right:'55%',top:'30%',width:'30%',height:'30%',display:'none'}}></div>
             </div>                    
         );
     }
