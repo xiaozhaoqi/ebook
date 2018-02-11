@@ -133,16 +133,16 @@
                 var username=decodeURIComponent(newsids[1].split('=')[1]);
                 var cfi=newsids[2].split('=')[1];
                 var key=newsids[3].split('=')[1].split('#')[0];
-                fetch('/getLoginKey', { 
+                fetch('/checkLoginState', { 
                     method: 'post', 
                     headers: { 
                     "Content-type": "application/x-www-form-urlencoded" 
                     }, 
-                    body: "username="+username //用户名
+                    body: "username="+username+"&keycheck="+key //用户名
                 }).then(
                     response => response.json()
-                ).then((keycheck)=>{
-                    if(keycheck.keycheck==key)
+                ).then((result)=>{
+                    if(result.ok=='1')
                     {
                         let date = new Date();
                         if(date.getHours()>=12 && date.getHours()<=18)

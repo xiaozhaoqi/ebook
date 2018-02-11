@@ -69,16 +69,16 @@ class Sider extends React.Component {
     handleClick(e) {
         if(this.state.username!='')
         {
-            fetch('/getLoginKey', { 
+            fetch('/checkLoginState', { 
                 method: 'post', 
                 headers: { 
                 "Content-type": "application/x-www-form-urlencoded" 
                 }, 
-                body: "username="+this.state.username
+                body: "username="+this.state.username+"&keycheck="+this.state.keycheck
             }).then(
                 response => response.json()
             ).then( (data)=> {
-                if(data.keycheck!=this.state.keycheck || data.keycheck==-1)
+                if(data.ok=='0')
                 {
                     message.error(`登录异常！即将回到主页！`);
                     setTimeout('window.location.href="/";',1000);

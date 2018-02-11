@@ -359,7 +359,7 @@ app.post('/login',function(req,res){//接口，登录
             'password': password
         }
     }).then(function(result){
-        var keycheck = Math.floor(10*Math.random());
+        var keycheck = Math.floor(1000000*Math.random());
         users.update({keycheck:keycheck}, {where:{username:req.body.username}}).then(function (result){
             // 修改结果
           }).catch(function(err){
@@ -375,22 +375,22 @@ app.post('/login',function(req,res){//接口，登录
     });
 });
 
-app.post('/getLoginKey',function(req,res){
+app.post('/checkLoginState',function(req,res){
     users.findAll({
         'where': {
-            'username': req.body.username
+            'username': req.body.username,
+            'keycheck': req.body.keycheck
         }
     }).then(function(result){
         if(result.length>=1){
-            res.json({'keycheck':result[0].keycheck});
+            res.json({'ok':'1'});
         }
         else{
-            res.json({'keycheck':-1});
+            res.json({'ok':'0'});
         }
     }).catch(function(err){
             console.log(err.message);
     });
-
 });
 
 app.post('/logoutClear',function(req,res){
