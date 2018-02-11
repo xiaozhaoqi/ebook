@@ -52,7 +52,7 @@
                 <button type="button" id='username' class="label label-info" data-toggle="tooltip" data-placement="top" title="状态：阅读中~正在产生阅读数据"><span class="glyphicon glyphicon-user"></span> </button>
                 <span id="tagBottomItem"></span>
                 <button type="button" class="label label-info" id='shareMarks' data-toggle="tooltip" data-placement="top" title="开关：是否阅览其他读者的批注"><span class="glyphicon glyphicon-eye-open"></span></button>  
-                <button type="button" class="label label-info" id='markingMode' data-toggle="tooltip" data-placement="top" title="模式：是否打开快速标记模式"><span class="glyphicon glyphicon-lock"></span></button>        
+                <button type="button" class="label label-info" id='markingMode' data-toggle="tooltip" data-placement="top" title="模式：是否打开快速标记模式"><span id='lock' class="glyphicon glyphicon-lock"></span></button>        
                 <button type="button" class="label label-info" id='help' data-toggle="tooltip" data-placement="top" title="帮助"><span class="glyphicon glyphicon-question-sign"></span></button>                    
             </div>    
         </div>
@@ -230,6 +230,7 @@
                 {
                     markingMode = false;
                     currentTag = '';
+                    $('#markingMode').html('<span class="glyphicon glyphicon-random"></span>');
                     for(var tagItem=0;tagItem<tags.length;tagItem++)
                     {
                         if(tags[tagItem].split('#')[0]!='分享')
@@ -255,6 +256,7 @@
                 else
                 {
                     markingMode = true;
+                    $('#markingMode').html('<span class="glyphicon glyphicon-lock"></span>');
                     $('#tagBottomItem').children().remove();
                     jumpToNow();
                 }
@@ -450,7 +452,8 @@
                     }
                     range.setStart(first.firstChild,0);
                     t = end.nextElementSibling;
-                    while (t != null && t.innerText != "。" && t != '') {
+                    
+                    while (t != null && t.innerText != "。" && t != '' && t.hasAttribute('state')==false) {
                         last = t;
                         t = t.nextElementSibling;
                     }
@@ -548,7 +551,30 @@
                         }
                         ifmObj[i].innerHTML=para1.join('');
                     }
-                    fetch('/getUserMarks', { 
+                }
+                else
+                {
+                    for (let i = 0; i < ifmObj.length; i++) {
+                        var para = ifmObj[i].innerText;
+                        var para1 = [];
+                        var sentence = [];
+                        for (let j = 0; j < para.length; j++) {
+                            if (para[j] != '。') {
+                                sentence.unshift(`<span style="cursor:pointer;font-size:${fontSize + 'em'}" onclick="window.parent.getCFI(this);">` + `${para[j]}` + '</span>');
+                            }
+                            else
+                            {
+                                sentence.unshift(`<span style="cursor:pointer;font-size:${fontSize + 'em'}">` + `${para[j]}` + '</span>');
+                            }
+                            if (j == para.length - 1) {
+                                para1.push(sentence.reverse().join(''));
+                                sentence = [];
+                            }
+                        }
+                        ifmObj[i].innerHTML = para1.join('');
+                    }
+                }
+                fetch('/getUserMarks', { 
                             method: 'post', 
                             headers: { 
                             "Content-type": "application/x-www-form-urlencoded" 
@@ -748,29 +774,6 @@
                     }).catch(function(e) {
                         console.log("getUserMarks error");
                     });
-                }
-                else//分句
-                {
-                    for (let i = 0; i < ifmObj.length; i++) {
-                        var para = ifmObj[i].innerText;
-                        var para1 = [];
-                        var sentence = [];
-                        for (let j = 0; j < para.length; j++) {
-                            if (para[j] != '。') {
-                                sentence.unshift(`<span style="cursor:pointer;font-size:${fontSize + 'em'}" onclick="window.parent.getCFI(this);">` + `${para[j]}` + '</span>');
-                            }
-                            else
-                            {
-                                sentence.unshift(`<span style="cursor:pointer;font-size:${fontSize + 'em'}">` + `${para[j]}` + '</span>');
-                            }
-                            if (j == para.length - 1) {
-                                para1.push(sentence.reverse().join(''));
-                                sentence = [];
-                            }
-                        }
-                        ifmObj[i].innerHTML = para1.join('');
-                    }
-                }
             });
             reader.book.on("renderer:locationChanged",function(){
                 $('#rate').text('当前第'+reader.book.renderer.chapterPos+'页，本章共'+reader.book.renderer.displayedPages+'页');
