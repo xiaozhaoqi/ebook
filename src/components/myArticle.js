@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import {Form,Input,Checkbox,Button,Tabs,Table,Icon,message,Divider,Switch,Badge,Tag} from 'antd';
+import { setTimeout } from 'timers';
 const TabPane = Tabs.TabPane;
 const Search = Input.Search;
 
@@ -45,14 +46,15 @@ class MyArticle extends Component {
             key:urlKey,
             likes:0,
             numMark:0,
-            numComment:0
+            numComment:0,
+            disable:true
         };
         this.callback=this.callback.bind(this);
         this.delete=this.delete.bind(this);
         this.search=this.search.bind(this);
-        this.searchBookName=this.searchBookName.bind(this);
         this.byTag=this.byTag.bind(this);
         this.clickInFor=this.clickInFor.bind(this);
+        this.downloadMarks=this.downloadMarks.bind(this);
         this.callback();
     }
 
@@ -102,9 +104,9 @@ class MyArticle extends Component {
         })
         tags.push(
             <span>
-                <span className='bsTags' onClick={()=>{this.byTag(tagName,tagColor)}} style={{backgroundColor:tagColor,margin:'0.2em 0.2em 0.2em'}}>
+                <span className='bsTags' onClick={()=>{this.byTag(tagName,tagColor)}} style={{backgroundColor:tagColor}}>
                     {tagName}
-                    <Badge count={count} style={{position:'absolute',top:'-30px',right:'-30px'}}>
+                    <Badge count={count} style={{position:'absolute',top:'-30px',right:'-30px',backgroundColor:tagColor}}>
                         <a href="#" className="head-example" />
                     </Badge>
                 </span>
@@ -203,36 +205,35 @@ class MyArticle extends Component {
         })
     }
 
-    searchBookName(value){
-        var otherDataSource = [];
-        let numMark=0;
-        let numComment=0;
-        let likes=0;
-        for(var i=0;i<this.state.allData.length;i++)
-        {
-            if(this.state.allData[i].bookname.indexOf(value)>=0)
+    downloadMarks(username){
+        fetch('/downloadMarks',{
+            method:'POST' ,
+            headers: { 
+                "Content-type": "application/x-www-form-urlencoded" 
+            }, 
+            body: "username="+username
+        }).then((data)=>{ 
+            if(data.ok=='1')
             {
-                likes = likes + this.state.allData[i].likes;
-                numMark = numMark + this.state.allData[i].mark.length;
-                numComment = numComment + this.state.allData[i].comment.length;
-                otherDataSource.push(this.state.allData[i]);
+                message.info('正在生成Excel报表，稍后即可下载:)')
+                setTimeout(()=>{
+                    message.success('生成完毕，请下载:)')
+                    this.setState({
+                        disable:false
+                    })
+                },1500);
             }
-        }
-        this.setState({
-            dataSource:otherDataSource,
-            numMark:numMark,
-            likes:likes,
-            numComment:numComment
+        }).catch(function (error) { 
+              message.error(`网络错误!`);
         })
     }
-
     render() {
         const columns = [
         {
             title: '时间',
             dataIndex: 'time',
             key: 'time',
-            width: '150px',
+            width: '250px',
             sorter(a, b) {
                 return a.time - b.time;
             },
@@ -249,7 +250,7 @@ class MyArticle extends Component {
             title: '标记(累计'+this.state.numMark+'字)',
             dataIndex: 'mark',
             key: 'mark',
-            width: '300px',
+            width: '400px',
             sorter(a, b) {
                 return a.mark.length - b.mark.length;
             },
@@ -283,14 +284,14 @@ class MyArticle extends Component {
             title: '标签(共获得'+this.state.likes+'个赞)',
             dataIndex: 'tag',
             key: 'tag',
-            width: '100px',
+            width: '200px',
             sorter(a, b) {
                 return a.likes - b.likes;
             },
             render: (text, record) => {
                 if(record.tag=='分享')
                 {
-                    return (<div><Tag color={record.color}>{text}</Tag><br/><br/><Icon type="like" style={{color:'#5bc0de',fontSize:'1.2em'}}/><span style={{color:'#5bc0de',fontSize:'1.2em'}}> {record.likes}</span></div>)
+                    return (<Tag color={record.color}>{text}{'👍 '+record.likes}</Tag>)
                 }
                 else
                 {
@@ -300,7 +301,7 @@ class MyArticle extends Component {
         },{
             title: '操作',
             key: 'action',
-            width: '250px',
+            width: '200px',
             render: (text, record) => (
               <span>
                 <a href="javascript:;" onClick={()=>this.delete(record)} style={{fontSize:'1.4em'}}><Icon type="delete" /></a>
@@ -312,24 +313,25 @@ class MyArticle extends Component {
         return (
             <div className='Card' style={{ background: '#fff', padding: 24, minHeight: 280 }}> 
                 <div>
-                    <Button onClick={this.callback}>显示全部</Button>
-                    <Divider type="vertical" />
                     <Search
                         placeholder="在正文或批注中搜索..."
                         onSearch={this.search}
                         enterButton='搜索'
-                        style={{display:'inline-block',width:'30%'}}
+                        style={{display:'inline-block',width:'50%',margin:'20px 0 0 0'}}
                     />
                     <Divider type="vertical" />
-                    <Search
-                        placeholder="在书名中搜索..."
-                        onSearch={this.searchBookName}
-                        enterButton='搜索'
-                        style={{display:'inline-block',width:'30%'}}
-                    />
+                    <Button type='button' type="primary">
+                        <a href="javascript:;" onClick={()=>this.downloadMarks(this.state.username)}>将标记生成Excel报表</a>
+                    </Button>
+                    <Divider type="vertical" />
+                    <Button type='button' disabled={this.state.disable} type="primary">
+                        <a href={'./excel/'+this.state.username+'.xlsx'}  download={decodeURIComponent(this.state.username)}>下载Excel报表</a>
+                    </Button>
                 </div>
                 <br/>
                 <div>
+                    <Button onClick={this.callback}>显示全部</Button>
+                    <Divider type="vertical" />
                     {this.state.tags}
                 </div>
                 <br/>

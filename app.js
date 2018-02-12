@@ -10,7 +10,7 @@ var Sequelize = require('sequelize');
 var multer  = require('multer')
 var engine = require('consolidate');
 const crypto = require('crypto');
-
+const XLSX = require('xlsx');
 app.engine('html', engine.mustache);
 app.set('view engine', 'html');
 var sequelize = new Sequelize('ebook', 'root', '1013', {
@@ -505,6 +505,53 @@ app.post('/removeUserTag',function(req,res){//接口，删除标签
     console.log(err);	
     })
     res.sendStatus(200);
+});
+
+app.post('/downloadMarks',function(req,res){
+    let _data=[];
+    const _headers = ['时间','书名', '标记内容', '批注', '标签','赞'];
+    let tDate = new Date();
+    marks.findAll({
+        'where': {
+            'username': req.body.username
+        }
+    }).then(function(result){
+        for(let i=0;i<result.length;i++)
+        {
+            tDate.setTime(result[i].time);
+            _data.push(
+                {
+                    '时间':tDate.toLocaleString(),
+                    '书名':result[i].bookname.slice(0,-5),
+                    '标记内容':result[i].mark,
+                    '批注':result[i].comment,
+                    '标签':result[i].tag,
+                    '赞':result[i].likes,
+                }
+            )
+        }
+        const headers = _headers
+            .map((v, i) => Object.assign({}, { v: v, position: String.fromCharCode(65 + i) + 1 }))
+            .reduce((prev, next) => Object.assign({}, prev, { [next.position]: { v: next.v } }), {});
+        const data = _data
+            .map((v, i) => _headers.map((k, j) => Object.assign({}, { v: v[k], position: String.fromCharCode(65 + j) + (i + 2) })))
+            .reduce((prev, next) => prev.concat(next))
+            .reduce((prev, next) => Object.assign({}, prev, { [next.position]: { v: next.v } }), {});
+        const output = Object.assign({}, headers, data);
+        const outputPos = Object.keys(output);
+        const ref = outputPos[0] + ':' + outputPos[outputPos.length - 1];
+        const workbook = {
+            SheetNames: ['mySheet'],
+            Sheets: {
+                'mySheet': Object.assign({}, output, { '!ref': ref })
+            }
+        };
+        XLSX.writeFile(workbook, './src/excel/'+req.body.username+'.xlsx');
+        res.json({'ok':'1'});
+    }).catch(function(err){
+            console.log(err.message);
+    });
+    
 });
 
 app.use(function(req, res, next) {

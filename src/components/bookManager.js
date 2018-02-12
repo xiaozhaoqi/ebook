@@ -246,7 +246,7 @@ class BookManager extends Component {
                     mark = mark + parseInt(data[i].markNum);
                 }
                 this.setState({
-                    dataSource:data,
+                    dataSource:data.reverse(),
                     memory:mem,
                     allData:data,
                     markAllNum:mark

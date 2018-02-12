@@ -418,7 +418,7 @@
                 }
             }
 
-            function clickMarkSelf(comment,data,span,spanEnd){
+            function clickMarkSelf(comment,span,spanEnd){
                 comment.onclick=function(){
                     if(comment.getAttribute('state')=='1')
                     {
@@ -450,6 +450,7 @@
                         first = t;
                         t = t.previousElementSibling;
                     }
+                    let begin = first;
                     range.setStart(first.firstChild,0);
                     t = end.nextElementSibling;
                     
@@ -473,6 +474,13 @@
                         first = first.nextElementSibling;
                     }
                     last.style.color = currentColor;
+                    var commentSpan=document.createElement("span");
+                    commentSpan.setAttribute('state','1');
+                    spanStyle(commentSpan);
+                    commentSpan.style.backgroundColor = currentColor;
+                    clickMarkSelf(commentSpan,begin,last);
+                    commentSpan.innerText = currentTag;
+                    last.parentNode.appendChild(commentSpan);
                     var date = new Date();
                     $('#successedMark').show();
                     setTimeout(() => {
@@ -497,6 +505,22 @@
                     alert('请在页面下方选择合适的标签，再进行标记')
                 }
             };
+
+            function spanStyle(commentSpan){
+                commentSpan.style.fontSize = '75%';
+                commentSpan.style.cursor = 'pointer';
+                commentSpan.style.display = 'inline';
+                commentSpan.style.padding = '0.2em 0.6em 0.3em';
+                commentSpan.style.margin = '0.2em 0.6em 0.3em';
+                commentSpan.style.fontWeight = '700';
+                commentSpan.style.lineHeight = '1';
+                commentSpan.style.color = '#fff';
+                commentSpan.style.textAlign = 'center';
+                commentSpan.style.verticalAlign = 'baseline';
+                commentSpan.style.borderRadius = '0.25em';
+                commentSpan.style.lineHeight='2em';
+                commentSpan.style.userSelect='none';
+            }
 
             reader.book.on("renderer:chapterDisplayed",(chapter)=>{
                 var i = document.getElementById("viewer");
@@ -675,22 +699,10 @@
                                                 if(data[i].comment!=''&&data[i].comment!='快速标记')
                                                 {
                                                     var commentSpan=document.createElement("span");
-                                                    commentSpan.style.fontSize = '75%';
                                                     commentSpan.setAttribute('state','1');
-                                                    commentSpan.style.cursor = 'pointer';
-                                                    commentSpan.style.display = 'inline';
-                                                    commentSpan.style.padding = '0.2em 0.6em 0.3em';
-                                                    commentSpan.style.margin = '0.2em 0.6em 0.3em';
-                                                    commentSpan.style.fontWeight = '700';
-                                                    commentSpan.style.lineHeight = '1';
-                                                    commentSpan.style.color = '#fff';
-                                                    commentSpan.style.textAlign = 'center';
-                                                    commentSpan.style.verticalAlign = 'baseline';
-                                                    commentSpan.style.borderRadius = '0.25em';
-                                                    commentSpan.style.lineHeight='2em';
-                                                    commentSpan.style.userSelect='none';
+                                                    spanStyle(commentSpan);
                                                     commentSpan.style.backgroundColor = data[i].color;
-                                                    clickMarkSelf(commentSpan,data[i],span,spanEnd);
+                                                    clickMarkSelf(commentSpan,span,spanEnd);
                                                     if(data[i].tag=='分享')
                                                         commentSpan.innerHTML=data[i].tag+'：'+data[i].comment+'<span style="color:black;">(👍 '+data[i].likes+')</span>';
                                                     else
@@ -700,22 +712,10 @@
                                                 else
                                                 {
                                                     var commentSpan=document.createElement("span");
-                                                    commentSpan.style.fontSize = '75%';
                                                     commentSpan.setAttribute('state','1');
-                                                    commentSpan.style.cursor = 'pointer';
-                                                    commentSpan.style.display = 'inline';
-                                                    commentSpan.style.padding = '0.2em 0.6em 0.3em';
-                                                    commentSpan.style.margin = '0.2em 0.6em 0.3em';
-                                                    commentSpan.style.fontWeight = '700';
-                                                    commentSpan.style.lineHeight = '1';
-                                                    commentSpan.style.color = '#fff';
-                                                    commentSpan.style.textAlign = 'center';
-                                                    commentSpan.style.verticalAlign = 'baseline';
-                                                    commentSpan.style.borderRadius = '0.25em';
-                                                    commentSpan.style.lineHeight='2em';
-                                                    commentSpan.style.userSelect='none';
+                                                    spanStyle(commentSpan);
                                                     commentSpan.style.backgroundColor = data[i].color;
-                                                    clickMarkSelf(commentSpan,data[i],span,spanEnd);
+                                                    clickMarkSelf(commentSpan,span,spanEnd);
                                                     if(data[i].tag=='分享')
                                                         commentSpan.innerHTML=data[i].tag+'<span style="color:black;">(👍 '+data[i].likes+')</span>';
                                                     else
@@ -747,19 +747,7 @@
                                                     }
                                                     commentSpan.setAttribute('state','1');
                                                     commentSpan.setAttribute('title','查看标记');
-                                                    commentSpan.style.fontSize = '75%';
-                                                    commentSpan.style.cursor = 'pointer';
-                                                    commentSpan.style.display = 'inline';
-                                                    commentSpan.style.padding = '0.2em 0.6em 0.3em';
-                                                    commentSpan.style.margin = '0.2em 0.6em 0.3em';
-                                                    commentSpan.style.fontWeight = '700';
-                                                    commentSpan.style.lineHeight = '1';
-                                                    commentSpan.style.color = '#fff';
-                                                    commentSpan.style.textAlign = 'center';
-                                                    commentSpan.style.verticalAlign = 'baseline';
-                                                    commentSpan.style.borderRadius = '0.25em';
-                                                    commentSpan.style.lineHeight='2em';
-                                                    commentSpan.style.userSelect='none';
+                                                    spanStyle(commentSpan);
                                                     commentSpan.style.backgroundColor = data[i].color;
                                                     clickMark(commentSpan,data[i],span,spanEnd);
                                                     spanEnd.parentNode.appendChild(commentSpan);
@@ -1006,21 +994,10 @@
                                 {
                                     var commentText=document.createTextNode(tagSelect);
                                 }
-                                commentSpan.style.fontSize = '75%';
-                                commentSpan.style.cursor = 'pointer';
-                                commentSpan.style.display = 'inline';
-                                commentSpan.style.padding = '0.2em 0.6em 0.3em';
-                                commentSpan.style.margin = '0.2em 0.6em 0.3em';
-                                commentSpan.style.fontWeight = '700';
-                                commentSpan.style.lineHeight = '1';
-                                commentSpan.style.color = '#fff';
-                                commentSpan.style.textAlign = 'center';
-                                commentSpan.style.verticalAlign = 'baseline';
-                                commentSpan.style.borderRadius = '0.25em';
+                                spanStyle(commentSpan);
                                 commentSpan.style.backgroundColor = color;
-                                commentSpan.style.lineHeight='2em';
-                                commentSpan.style.userSelect='none';
                                 commentSpan.appendChild(commentText);
+                                clickMarkSelf(commentSpan,range.startContainer.parentNode,range.endContainer.parentNode);
                                 span.parentNode.appendChild(commentSpan);
                                 $('#successedMark').show();
                                 setTimeout(() => {
