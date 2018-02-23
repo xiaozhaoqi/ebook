@@ -4018,7 +4018,7 @@ RSVP.EventTarget.mixin(EPUBJS.Book.prototype);
 
 //-- Handle RSVP Errors
 RSVP.on('error', function(event) {
-	console.error(event);
+	 alert('图书可能已被下架，无法阅读');
 });
 
 RSVP.configure('instrument', true); //-- true | will logging out all RSVP rejections
